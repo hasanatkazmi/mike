@@ -511,6 +511,58 @@ alter table public.pk_cases enable row level security;
 alter table public.pk_case_citations enable row level security;
 alter table public.pk_case_chunks enable row level security;
 
+create or replace function public.pk_match_case_chunks(
+  query_embedding vector(1536),
+  match_count int default 12,
+  filter_court text default null
+)
+returns table (
+  chunk_id uuid,
+  case_id uuid,
+  chunk_index int,
+  text text,
+  page int,
+  similarity float
+)
+language sql
+stable
+as $$
+  select c.id, c.case_id, c.chunk_index, c.text, c.page,
+         1 - (c.embedding <=> query_embedding) as similarity
+  from public.pk_case_chunks c
+  join public.pk_cases k on k.id = c.case_id
+  where c.embedding is not null
+    and (filter_court is null or k.court = filter_court)
+  order by c.embedding <=> query_embedding
+  limit greatest(match_count, 1);
+$$;
+
+create or replace function public.pk_match_statute_sections(
+  query_embedding vector(1536),
+  match_count int default 12,
+  filter_jurisdiction text default null
+)
+returns table (
+  section_id uuid,
+  statute_id uuid,
+  section_number text,
+  heading text,
+  text text,
+  similarity float
+)
+language sql
+stable
+as $$
+  select s.id, s.statute_id, s.section_number, s.heading, s.text,
+         1 - (s.embedding <=> query_embedding) as similarity
+  from public.pk_statute_sections s
+  join public.pk_statutes a on a.id = s.statute_id
+  where s.embedding is not null
+    and (filter_jurisdiction is null or a.jurisdiction = filter_jurisdiction)
+  order by s.embedding <=> query_embedding
+  limit greatest(match_count, 1);
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Direct client grant hardening
 -- ---------------------------------------------------------------------------
@@ -543,3 +595,5 @@ revoke all on public.pk_statute_sections from anon, authenticated;
 revoke all on public.pk_cases from anon, authenticated;
 revoke all on public.pk_case_citations from anon, authenticated;
 revoke all on public.pk_case_chunks from anon, authenticated;
+revoke all on function public.pk_match_case_chunks(vector, int, text) from anon, authenticated;
+revoke all on function public.pk_match_statute_sections(vector, int, text) from anon, authenticated;

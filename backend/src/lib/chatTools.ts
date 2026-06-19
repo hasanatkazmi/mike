@@ -31,6 +31,16 @@ import {
   type CourtlistenerToolEvent,
 } from "./legalSourcesTools/courtlistenerTools";
 import {
+  PAKISTAN_SYSTEM_PROMPT,
+  PAKISTAN_TOOLS,
+  type PakistanToolEvent,
+  type PkCaseCitationEvent,
+} from "./legalSourcesTools/pakistanTools";
+import {
+  executePakistanTool,
+  isPakistanTool,
+} from "./legalSourcesTools/pakistanToolsExec";
+import {
   streamChatWithTools,
   resolveModel,
   DEFAULT_MAIN_MODEL,
@@ -166,7 +176,7 @@ GENERAL GUIDANCE:
  */
 export function buildSystemPrompt(includeResearchTools = true): string {
   return includeResearchTools
-    ? `${SYSTEM_PROMPT_BEFORE_RESEARCH}\n\n${COURTLISTENER_SYSTEM_PROMPT}\n${SYSTEM_PROMPT_AFTER_RESEARCH}`
+    ? `${SYSTEM_PROMPT_BEFORE_RESEARCH}\n\n${PAKISTAN_SYSTEM_PROMPT}\n${SYSTEM_PROMPT_AFTER_RESEARCH}`
     : `${SYSTEM_PROMPT_BEFORE_RESEARCH}\n\n${SYSTEM_PROMPT_AFTER_RESEARCH}`;
 }
 
@@ -2302,6 +2312,8 @@ export async function runToolCalls(
   docsEdited: DocEditedResult[];
   courtlistenerEvents: CourtlistenerToolEvent[];
   caseCitationEvents: CaseCitationEvent[];
+  pakistanEvents: PakistanToolEvent[];
+  pkCaseCitationEvents: PkCaseCitationEvent[];
 }> {
   const toolResults: unknown[] = [];
   const docsRead: { filename: string; document_id?: string }[] = [];
@@ -2316,6 +2328,8 @@ export async function runToolCalls(
   const docsEdited: DocEditedResult[] = [];
   const courtlistenerEvents: CourtlistenerToolEvent[] = [];
   const caseCitationEvents: CaseCitationEvent[] = [];
+  const pakistanEvents: PakistanToolEvent[] = [];
+  const pkCaseCitationEvents: PkCaseCitationEvent[] = [];
   const courtState: CourtlistenerTurnState =
     courtlistenerState ??
     {
@@ -2522,6 +2536,16 @@ export async function runToolCalls(
         tool_call_id: tc.id,
         content: lines.join("\n") || "No cells found.",
       });
+    } else if (isPakistanTool(tc.function.name)) {
+      const { toolResult, events, caseCitations } = await executePakistanTool({
+        call: { id: tc.id, name: tc.function.name, args },
+        db,
+        write,
+        apiKeys,
+      });
+      toolResults.push(toolResult);
+      pakistanEvents.push(...events);
+      pkCaseCitationEvents.push(...caseCitations);
     } else if (tc.function.name === COURTLISTENER_TOOL_NAMES.searchCaseLaw) {
       const query = typeof args.query === "string" ? args.query : "";
       write(
@@ -3619,6 +3643,8 @@ export async function runToolCalls(
     docsEdited,
     courtlistenerEvents,
     caseCitationEvents,
+    pakistanEvents,
+    pkCaseCitationEvents,
   };
 }
 
@@ -3843,6 +3869,8 @@ type AssistantEvent =
     }
   | CaseCitationEvent
   | CourtlistenerToolEvent
+  | PakistanToolEvent
+  | PkCaseCitationEvent
   | { type: "case_opinions"; cluster_id: number; case: unknown }
   | { type: "content"; text: string }
   | { type: "error"; message: string };
@@ -3924,7 +3952,7 @@ export async function runLLMStream(params: {
     signal,
     projectId,
   } = params;
-  const researchTools = includeResearchTools ? COURTLISTENER_TOOLS : [];
+  const researchTools = includeResearchTools ? PAKISTAN_TOOLS : [];
   const baseTools = [...TOOLS, ...researchTools, ...WORKFLOW_TOOLS];
   const activeTools = extraTools?.length
     ? [...baseTools, ...extraTools]
@@ -4131,6 +4159,8 @@ export async function runLLMStream(params: {
           docsEdited,
           courtlistenerEvents,
           caseCitationEvents,
+          pakistanEvents,
+          pkCaseCitationEvents,
         } = await runToolCalls(
           toolCalls,
           docStore,
@@ -4201,6 +4231,12 @@ export async function runLLMStream(params: {
           events.push(event);
         }
         for (const event of caseCitationEvents) {
+          events.push(event);
+        }
+        for (const event of pakistanEvents) {
+          events.push(event);
+        }
+        for (const event of pkCaseCitationEvents) {
           events.push(event);
         }
 

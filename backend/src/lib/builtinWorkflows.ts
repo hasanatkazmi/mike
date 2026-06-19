@@ -73,4 +73,67 @@ export const BUILTIN_WORKFLOWS: { id: string; title: string; prompt_md: string }
             "15. **Governing Law & Dispute Resolution** — Applicable law, forum, arbitration or litigation, and any mandatory escalation steps\n\n" +
             "Generate the summary as a downloadable Word document.",
     },
+    {
+        id: "builtin-pk-legal-notice",
+        title: "Draft Legal Notice (Pakistan)",
+        prompt_md:
+            "## Draft a Legal Notice\n\n" +
+            "Draft a formal legal notice for service in Pakistan based on the facts the user provides (and any uploaded documents). " +
+            "Ask for any essential missing facts (parties, addresses, the breach or grievance, the relief demanded, and any statutory notice period) before drafting if they are not supplied.\n\n" +
+            "Structure the notice as follows:\n" +
+            "- Heading: \"LEGAL NOTICE\" and, where the notice is statutory, cite the provision under which it is issued (e.g. notice under section 80 CPC to a public officer/Government, or a contractual breach notice).\n" +
+            "- Through counsel block: \"THROUGH: [Advocate name], Advocate High Court\".\n" +
+            "- Addressee (the noticee) with full name and address.\n" +
+            "- Numbered paragraphs setting out the facts, the legal basis, and the breach or cause of action.\n" +
+            "- A clear demand with a specific compliance period (e.g. 14 days).\n" +
+            "- A statement that, failing compliance, the client will initiate civil and/or criminal proceedings at the noticee's risk and cost.\n" +
+            "- Signature block for the issuing advocate with date and place.\n\n" +
+            "Use Pakistani legal drafting conventions. Where a statutory notice period applies, state it correctly. Generate the notice as a downloadable Word document with generate_docx.",
+    },
+    {
+        id: "builtin-pk-writ-petition",
+        title: "Draft Writ Petition (Article 199)",
+        prompt_md:
+            "## Draft a Constitutional (Writ) Petition under Article 199\n\n" +
+            "Draft a Constitutional Petition under Article 199 of the Constitution of the Islamic Republic of Pakistan, 1973, for filing before the relevant High Court, based on the user's facts and any uploaded documents.\n\n" +
+            "Structure the petition as follows:\n" +
+            "- Cause title: \"IN THE [LAHORE/SINDH/PESHAWAR/BALOCHISTAN/ISLAMABAD] HIGH COURT\", the writ petition number placeholder, the petitioner(s) versus the respondent(s) (impleading the relevant public functionaries/Federation/Province as appropriate).\n" +
+            "- Title: \"CONSTITUTIONAL PETITION UNDER ARTICLE 199 OF THE CONSTITUTION OF THE ISLAMIC REPUBLIC OF PAKISTAN, 1973\".\n" +
+            "- Numbered \"Respectfully Sheweth\" paragraphs: parties and locus standi, the impugned action/order, the relevant facts in chronological order, and the grounds (each ground lettered, e.g. (a), (b)) showing the action is without lawful authority and of no legal effect.\n" +
+            "- A prayer clause setting out the specific relief sought (e.g. declaration, mandamus, certiorari, prohibition) and that no other adequate remedy is available.\n" +
+            "- Verification and the advocate's signature block.\n\n" +
+            "Flag the maintainability requirements (alternate remedy, locus standi) for the user. Generate the petition as a downloadable Word document with generate_docx.",
+    },
+    {
+        id: "builtin-pk-bail-application",
+        title: "Draft Bail Application",
+        prompt_md:
+            "## Draft a Bail Application\n\n" +
+            "Draft a bail application under the Code of Criminal Procedure, 1898, based on the user's facts and any uploaded FIR or order. Confirm whether this is a pre-arrest (anticipatory) bail application under section 498 CrPC or a post-arrest bail application under section 497 CrPC, and the FIR particulars (FIR number, police station, sections, and the court), asking if not provided.\n\n" +
+            "Structure the application as follows:\n" +
+            "- Cause title naming the court, the case/FIR particulars, and the applicant/accused versus the State (and complainant where relevant).\n" +
+            "- Title identifying it as an application under section 497 or 498 CrPC.\n" +
+            "- Numbered grounds: the prosecution case in brief, then the grounds for bail (e.g. whether the offence falls within the prohibitory clause of section 497(1), absence of reasonable grounds, further inquiry, delay, malafides, medical grounds, role attributed to the accused).\n" +
+            "- A prayer for grant of bail on the applicant furnishing surety to the court's satisfaction.\n" +
+            "- The advocate's signature block.\n\n" +
+            "Apply Pakistani criminal procedure correctly, including the distinction between bailable and non-bailable offences and the prohibitory clause. Generate the application as a downloadable Word document with generate_docx.",
+    },
+    {
+        id: "builtin-pk-tenancy-agreement",
+        title: "Draft Tenancy Agreement (Pakistan)",
+        prompt_md:
+            "## Draft a Tenancy (Rent) Agreement\n\n" +
+            "Draft a tenancy agreement for property situated in Pakistan based on the user's instructions. Confirm the province (the applicable Rent Restriction/Tenancy law differs by province, e.g. the Punjab Rented Premises Act 2009 or the Sindh Rented Premises Ordinance 1979) and the key commercial terms before drafting.\n\n" +
+            "Include, as numbered clauses beginning at the first operative clause (parties block and recitals unnumbered):\n" +
+            "- Parties (landlord and tenant) with CNIC and addresses, and a description of the demised premises.\n" +
+            "- Term, commencement date, and renewal mechanism.\n" +
+            "- Rent, due date, mode of payment, advance/security deposit, and the annual rent increase (state the permissible percentage).\n" +
+            "- Permitted use, restrictions on subletting and alterations, and utilities responsibility.\n" +
+            "- Maintenance and repair obligations, and the landlord's right of inspection.\n" +
+            "- Termination, notice period, and consequences of default/ejectment under the applicable rent law.\n" +
+            "- Registration and stamp-duty responsibility (note the stamp duty payable under the applicable provincial Stamp Act).\n" +
+            "- Governing law and dispute resolution (the Rent Controller of competent jurisdiction).\n" +
+            "- An unnumbered signature block on a fresh page with witness lines (two witnesses with CNIC).\n\n" +
+            "Generate the agreement as a downloadable Word document with generate_docx.",
+    },
 ];

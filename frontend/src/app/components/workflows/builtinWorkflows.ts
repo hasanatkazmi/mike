@@ -1241,6 +1241,67 @@ export const BUILT_IN_WORKFLOWS: Workflow[] = [
             },
         ],
     },
+    {
+        id: "builtin-pk-legal-notice",
+        user_id: null,
+        is_system: true,
+        created_at: "",
+        title: "Draft Legal Notice (Pakistan)",
+        type: "assistant",
+        practice: "Litigation",
+        prompt_md:
+            "## Draft a Legal Notice\n\n" +
+            "Draft a formal legal notice for service in Pakistan based on the facts the user provides (and any uploaded documents). " +
+            "Ask for any essential missing facts (parties, addresses, the breach or grievance, the relief demanded, and any statutory notice period) before drafting if they are not supplied.\n\n" +
+            "Include a \"LEGAL NOTICE\" heading (citing the statutory provision where applicable, e.g. section 80 CPC), a through-counsel block, the noticee's details, numbered fact paragraphs, a clear demand with a compliance period, a consequences-of-default statement, and the advocate's signature block. " +
+            "Use Pakistani drafting conventions and generate the notice as a downloadable Word document with generate_docx.",
+        columns_config: null,
+    },
+    {
+        id: "builtin-pk-writ-petition",
+        user_id: null,
+        is_system: true,
+        created_at: "",
+        title: "Draft Writ Petition (Article 199)",
+        type: "assistant",
+        practice: "Litigation",
+        prompt_md:
+            "## Draft a Constitutional (Writ) Petition under Article 199\n\n" +
+            "Draft a Constitutional Petition under Article 199 of the Constitution of the Islamic Republic of Pakistan, 1973, for the relevant High Court, based on the user's facts and any uploaded documents.\n\n" +
+            "Include the cause title and parties (impleading the relevant public functionaries), the title citing Article 199, numbered \"Respectfully Sheweth\" paragraphs (locus standi, the impugned action, facts, and lettered grounds), a prayer for specific relief noting the absence of an adequate alternate remedy, and the verification and advocate's signature block. " +
+            "Flag maintainability requirements and generate the petition as a downloadable Word document with generate_docx.",
+        columns_config: null,
+    },
+    {
+        id: "builtin-pk-bail-application",
+        user_id: null,
+        is_system: true,
+        created_at: "",
+        title: "Draft Bail Application",
+        type: "assistant",
+        practice: "Litigation",
+        prompt_md:
+            "## Draft a Bail Application\n\n" +
+            "Draft a bail application under the Code of Criminal Procedure, 1898, based on the user's facts and any uploaded FIR or order. Confirm whether it is pre-arrest (section 498 CrPC) or post-arrest (section 497 CrPC) bail and the FIR particulars before drafting.\n\n" +
+            "Include the cause title with FIR/case particulars, the title identifying the provision, numbered grounds (prosecution case in brief, then grounds for bail addressing the prohibitory clause, further inquiry, delay, malafides, role attributed, medical grounds), a prayer for grant of bail on surety, and the advocate's signature block. " +
+            "Apply Pakistani criminal procedure correctly and generate the application as a downloadable Word document with generate_docx.",
+        columns_config: null,
+    },
+    {
+        id: "builtin-pk-tenancy-agreement",
+        user_id: null,
+        is_system: true,
+        created_at: "",
+        title: "Draft Tenancy Agreement (Pakistan)",
+        type: "assistant",
+        practice: "Real Estate",
+        prompt_md:
+            "## Draft a Tenancy (Rent) Agreement\n\n" +
+            "Draft a tenancy agreement for property in Pakistan. Confirm the province (the applicable rent law differs, e.g. the Punjab Rented Premises Act 2009 or the Sindh Rented Premises Ordinance 1979) and the key commercial terms before drafting.\n\n" +
+            "Include numbered clauses for parties (with CNIC) and the demised premises, term and renewal, rent and security deposit and the permissible annual increase, permitted use and subletting restrictions, maintenance, termination and ejectment under the applicable rent law, registration and stamp-duty responsibility, governing law and the Rent Controller's jurisdiction, and an unnumbered signature block with two witnesses. " +
+            "Generate the agreement as a downloadable Word document with generate_docx.",
+        columns_config: null,
+    },
 ];
 
 export const BUILT_IN_IDS = new Set(BUILT_IN_WORKFLOWS.map((wf) => wf.id));

@@ -405,6 +405,113 @@ create table if not exists public.courtlistener_opinion_cluster_index (
 alter table public.courtlistener_opinion_cluster_index enable row level security;
 
 -- ---------------------------------------------------------------------------
+-- Pakistan legal corpus (statutes and case law)
+-- ---------------------------------------------------------------------------
+--
+-- Retrieval uses pgvector. The embedding dimension (1536) matches the default
+-- in backend/src/lib/legalSourcesTools/pakistanEmbeddings.ts. If you change the
+-- embedding model/dimension, update both places and re-embed.
+
+create extension if not exists vector;
+
+create table if not exists public.pk_statutes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  short_title text,
+  act_number text,
+  year integer,
+  jurisdiction text not null default 'federal',
+  category text,
+  source_url text,
+  enacted_on date,
+  status text not null default 'in_force',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_pk_statutes_jurisdiction
+  on public.pk_statutes(jurisdiction);
+create index if not exists idx_pk_statutes_year
+  on public.pk_statutes(year);
+
+create table if not exists public.pk_statute_sections (
+  id uuid primary key default gen_random_uuid(),
+  statute_id uuid not null references public.pk_statutes(id) on delete cascade,
+  section_number text,
+  heading text,
+  chapter text,
+  text text not null,
+  ordinal integer not null default 0,
+  embedding vector(1536),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_pk_statute_sections_statute
+  on public.pk_statute_sections(statute_id, ordinal);
+create index if not exists idx_pk_statute_sections_embedding
+  on public.pk_statute_sections using hnsw (embedding vector_cosine_ops);
+
+create table if not exists public.pk_cases (
+  id uuid primary key default gen_random_uuid(),
+  case_name text not null,
+  court text not null,
+  bench text,
+  judges text[] not null default '{}',
+  date_decided date,
+  case_number text,
+  source_url text,
+  pdf_storage_key text,
+  language text not null default 'en',
+  summary text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_pk_cases_court
+  on public.pk_cases(court);
+create index if not exists idx_pk_cases_date
+  on public.pk_cases(date_decided);
+
+create table if not exists public.pk_case_citations (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null references public.pk_cases(id) on delete cascade,
+  reporter text not null,
+  year integer,
+  court_or_volume text,
+  page integer,
+  raw text not null,
+  normalized text not null,
+  created_at timestamptz not null default now(),
+  unique(normalized)
+);
+
+create index if not exists idx_pk_case_citations_case
+  on public.pk_case_citations(case_id);
+create index if not exists idx_pk_case_citations_reporter
+  on public.pk_case_citations(reporter, year);
+
+create table if not exists public.pk_case_chunks (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null references public.pk_cases(id) on delete cascade,
+  chunk_index integer not null,
+  text text not null,
+  page integer,
+  embedding vector(1536),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_pk_case_chunks_case
+  on public.pk_case_chunks(case_id, chunk_index);
+create index if not exists idx_pk_case_chunks_embedding
+  on public.pk_case_chunks using hnsw (embedding vector_cosine_ops);
+
+alter table public.pk_statutes enable row level security;
+alter table public.pk_statute_sections enable row level security;
+alter table public.pk_cases enable row level security;
+alter table public.pk_case_citations enable row level security;
+alter table public.pk_case_chunks enable row level security;
+
+-- ---------------------------------------------------------------------------
 -- Direct client grant hardening
 -- ---------------------------------------------------------------------------
 --
@@ -431,3 +538,8 @@ revoke all on public.tabular_review_chat_messages from anon, authenticated;
 revoke all on public.user_api_keys from anon, authenticated;
 revoke all on public.courtlistener_citation_index from anon, authenticated;
 revoke all on public.courtlistener_opinion_cluster_index from anon, authenticated;
+revoke all on public.pk_statutes from anon, authenticated;
+revoke all on public.pk_statute_sections from anon, authenticated;
+revoke all on public.pk_cases from anon, authenticated;
+revoke all on public.pk_case_citations from anon, authenticated;
+revoke all on public.pk_case_chunks from anon, authenticated;

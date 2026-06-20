@@ -1,6 +1,6 @@
 # Mike
 
-Mike is a legal document assistant with a Next.js frontend, an Express backend, Supabase Auth/Postgres, and Cloudflare R2-compatible object storage.
+Mike is a legal document assistant for the Pakistani legal market, with a Next.js frontend, an Express backend, Supabase Auth/Postgres, and Cloudflare R2-compatible object storage. It helps lawyers analyse documents, answer questions on Pakistani law, and draft legal documents, with research over a corpus of Pakistani statutes and case law and support for Urdu (OCR and right-to-left drafting).
 
 Website: [mikeoss.com](https://mikeoss.com)
 
@@ -19,7 +19,7 @@ Website: [mikeoss.com](https://mikeoss.com)
 - A Supabase project
 - A Cloudflare R2 bucket, MinIO bucket, or another S3-compatible bucket
 - At least one supported model provider API key: Anthropic, Google Gemini, or OpenAI
-- Optional: a CourtListener API token for case law lookup and citation verification
+- A Google Gemini or OpenAI key is also required for embeddings (Pakistani legal research) and for OCR of scanned/Urdu judgments
 - LibreOffice installed locally if you need DOC/DOCX to PDF conversion
 
 ## Database Setup
@@ -63,12 +63,6 @@ ANTHROPIC_API_KEY=your-anthropic-key
 OPENAI_API_KEY=your-openai-key
 RESEND_API_KEY=your-resend-key
 USER_API_KEYS_ENCRYPTION_SECRET=your-long-random-secret
-
-# Optional: enables CourtListener case law and citation tools.
-COURTLISTENER_API_TOKEN=your-courtlistener-token
-
-# Optional: use locally imported CourtListener bulk data for faster case reads.
-COURTLISTENER_BULK_DATA_ENABLED=false
 ```
 
 Create `frontend/.env.local`:
@@ -81,23 +75,29 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 
 Supabase values come from the project dashboard. Use the project URL for `SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_URL`, the service role key for the backend `SUPABASE_SECRET_KEY`, and the anon/public key for `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`. If your Supabase project shows multiple key formats, use the legacy JWT-style anon and service role keys expected by the Supabase client libraries.
 
-Provider keys are only needed for the models, legal research, and email features you plan to use. Model provider keys and the CourtListener token can be configured in `backend/.env` for the whole instance, or per user in **Account > Models & API Keys**. If a provider key is present in `backend/.env`, that provider is available by default and the matching browser API key field is read-only.
+Provider keys are only needed for the models, legal research, and email features you plan to use. Model provider keys can be configured in `backend/.env` for the whole instance, or per user in **Account > Models & API Keys**. If a provider key is present in `backend/.env`, that provider is available by default and the matching browser API key field is read-only. A Gemini or OpenAI key is required for Pakistani legal research (embeddings) and OCR.
 
-## CourtListener Integration
+## Pakistani Legal Research
 
-Mike can use CourtListener for US case law citation verification, case fetching, targeted opinion search, and case-law panels in assistant responses.
+Mike researches Pakistani law over a corpus of statutes and case law stored in Supabase (pgvector). The assistant has tools to search statutes and case law, fetch and read judgments, search within a case, and verify reporter citations (PLD, SCMR, CLC, YLR, MLD, PLC, PTD, PCrLJ, etc.).
 
-To enable live CourtListener access, set `COURTLISTENER_API_TOKEN` in `backend/.env` and restart the backend. Users can also add their own CourtListener token from **Account > Models & API Keys** when the instance does not provide one globally.
+Retrieval is semantic, so an embedding provider key (`GEMINI_API_KEY` or `OPENAI_API_KEY`) is required to embed corpus text and queries. Citation verification is exact: a citation that is not in the corpus is reported as unverified rather than assumed to exist.
 
-Fresh databases created from `backend/schema.sql` already include the CourtListener support tables. Existing OSS deployments should apply the matching migration in `backend/oss-migrations/` before enabling the feature.
+Fresh databases created from `backend/schema.sql` already include the corpus tables (`pk_statutes`, `pk_statute_sections`, `pk_cases`, `pk_case_citations`, `pk_case_chunks`) and the `pk_match_*` similarity functions. Existing deployments should apply `backend/oss-migrations/20260619_pakistan_legal_corpus.sql`.
 
-Bulk data is optional. When `COURTLISTENER_BULK_DATA_ENABLED=true`, Mike first tries local Supabase/R2 data before falling back to CourtListener's API:
+### Building the corpus
 
-- citation metadata is read from `public.courtlistener_citation_index`
-- case cluster metadata is read from `public.courtlistener_opinion_cluster_index`
-- cached opinion JSON is read from the R2 prefix `courtlistener/opinions/by-cluster/{clusterId}/{opinionId}.json`
+The corpus starts empty. Populate it with the ingestion scripts (run in an environment with outbound access to the source sites, and respect each site's terms of use and robots.txt):
 
-If you do not import bulk data, leave `COURTLISTENER_BULK_DATA_ENABLED=false`; live CourtListener tools still work with a valid token, subject to CourtListener rate limits.
+```bash
+# Statutes from pakistancode.gov.pk
+tsx src/scripts/ingestStatutes.ts --list "<pakistancode listing URL>" --limit 50
+
+# Judgments from a JSON manifest of { url|text, case_name, court, citations, ... }
+tsx src/scripts/ingestCaseLaw.ts --manifest judgments.json
+```
+
+Scanned and Urdu-language judgment PDFs are transcribed with OCR (via Gemini multimodal) during ingestion; the judgment language (`en`/`ur`) is recorded. Drafted documents containing Urdu are rendered right-to-left in a Nastaliq font.
 
 ## Install
 
@@ -128,7 +128,7 @@ Open `http://localhost:3000`.
 
 1. Sign up in the app.
 2. If you did not set provider keys in `backend/.env`, open **Account > Models & API Keys** and add an Anthropic, Gemini, or OpenAI API key.
-3. To use legal research tools, add a CourtListener token in `backend/.env` or **Account > Models & API Keys**.
+3. To use legal research tools, ensure a Gemini or OpenAI key is configured (for embeddings) and populate the corpus with the ingestion scripts (see Pakistani Legal Research).
 4. Create or open a project and start chatting with documents.
 
 ## Troubleshooting
@@ -137,9 +137,7 @@ Open `http://localhost:3000`.
 
 **The model picker shows a missing-key warning.** Add a key for that provider in **Account > Models & API Keys**, or configure the provider key in `backend/.env` and restart the backend.
 
-**CourtListener tools say the API token is missing.** Set `COURTLISTENER_API_TOKEN` in `backend/.env`, or add a CourtListener token in **Account > Models & API Keys** for the signed-in user. Restart the backend after changing `.env`.
-
-**CourtListener bulk lookup is not returning local results.** Confirm `COURTLISTENER_BULK_DATA_ENABLED=true`, the two CourtListener tables have been populated, and opinion JSON exists in R2 under `courtlistener/opinions/by-cluster/`. If bulk data is unavailable, Mike falls back to the live API when a token is configured.
+**Legal research returns no results.** The corpus starts empty — run the ingestion scripts (see Pakistani Legal Research) and confirm a Gemini or OpenAI key is configured for embeddings. Citation verification reports citations that are not in the corpus as unverified by design.
 
 **DOC or DOCX conversion fails.** Install LibreOffice locally and restart the backend so document conversion commands are available on the process path.
 

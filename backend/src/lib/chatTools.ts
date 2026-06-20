@@ -40,6 +40,7 @@ import {
   executePakistanTool,
   isPakistanTool,
 } from "./legalSourcesTools/pakistanToolsExec";
+import { containsUrdu, URDU_FONT } from "./textScript";
 import {
   streamChatWithTools,
   resolveModel,
@@ -899,6 +900,12 @@ export async function generateDocx(
     const FONT = "Times New Roman";
     const SIZE = 22; // 11pt in half-points
 
+    // Urdu (Nastaliq, right-to-left) support. Runs containing Urdu script use a
+    // Nastaliq font and are marked right-to-left; their paragraphs are marked
+    // bidirectional so Word lays them out correctly.
+    const runFont = (text: string) => (containsUrdu(text) ? URDU_FONT : FONT);
+    const isRtl = (text: string) => containsUrdu(text);
+
     type DocChild = InstanceType<typeof Paragraph> | InstanceType<typeof Table>;
     const children: DocChild[] = [];
     children.push(
@@ -906,13 +913,15 @@ export async function generateDocx(
         heading: HeadingLevel.TITLE,
         spacing: { after: 200 },
         alignment: AlignmentType.CENTER,
+        bidirectional: isRtl(title),
         children: [
           new TextRun({
             text: title.toUpperCase(),
             color: "000000",
-            font: FONT,
+            font: runFont(title),
             size: SIZE,
             bold: true,
+            rightToLeft: isRtl(title),
           }),
         ],
       }),
@@ -1133,13 +1142,15 @@ export async function generateDocx(
               heading: headingLevels[idx],
               numbering: isUnnumbered ? undefined : legalNumbering(idx),
               spacing: { after: 160 },
+              bidirectional: isRtl(headingText),
               children: [
                 new TextRun({
                   text: headingText,
                   color: "000000",
-                  font: FONT,
+                  font: runFont(headingText),
                   size: SIZE,
                   bold: true,
+                  rightToLeft: isRtl(headingText),
                 }),
               ],
             }),
@@ -1162,12 +1173,14 @@ export async function generateDocx(
                   shading: { fill: "F2F2F2" },
                   children: [
                     new Paragraph({
+                      bidirectional: isRtl(h),
                       children: [
                         new TextRun({
                           text: h,
                           bold: true,
-                          font: FONT,
+                          font: runFont(h),
                           size: SIZE,
+                          rightToLeft: isRtl(h),
                         }),
                       ],
                       alignment: AlignmentType.LEFT,
@@ -1190,11 +1203,13 @@ export async function generateDocx(
                     borders: cellBorder,
                     children: [
                       new Paragraph({
+                        bidirectional: isRtl(cell),
                         children: [
                           new TextRun({
                             text: cell,
-                            font: FONT,
+                            font: runFont(cell),
                             size: SIZE,
+                            rightToLeft: isRtl(cell),
                           }),
                         ],
                       }),
@@ -1251,11 +1266,13 @@ export async function generateDocx(
                   ? undefined
                   : legalNumbering(inferredLevel),
               spacing: { after: 120 },
+              bidirectional: isRtl(text),
               children: [
                 new TextRun({
                   text,
-                  font: FONT,
+                  font: runFont(text),
                   size: SIZE,
+                  rightToLeft: isRtl(text),
                 }),
               ],
             }),

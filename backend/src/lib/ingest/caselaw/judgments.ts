@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchBuffer, type FetchOptions } from "../http";
 import { extractPdfText } from "../../chatTools";
 import { ingestCase, type CaseRecord } from "../pipeline";
+import { ocrPdf, containsUrdu } from "../ocr";
 import type { EmbedOptions } from "../../legalSourcesTools/pakistanEmbeddings";
 
 /**
@@ -50,39 +51,72 @@ export async function importJudgmentFromPdf(params: {
   meta: JudgmentMeta;
   apiKeys?: EmbedOptions["apiKeys"];
   fetchOptions?: FetchOptions;
+  /** When true (default), scanned/empty PDFs are transcribed with OCR. */
+  ocr?: boolean;
 }): Promise<{
   case_id: string | null;
   chunk_count: number;
   citation_count: number;
   char_count: number;
   needs_ocr: boolean;
+  used_ocr: boolean;
 }> {
   const { db, url, meta, apiKeys, fetchOptions } = params;
+  const ocrEnabled = params.ocr !== false;
 
   const buffer = await fetchBuffer(url, fetchOptions);
   const arrayBuffer = buffer.buffer.slice(
     buffer.byteOffset,
     buffer.byteOffset + buffer.byteLength,
   ) as ArrayBuffer;
-  const text = await extractPdfText(arrayBuffer);
-  const charCount = text.trim().length;
+  let text = await extractPdfText(arrayBuffer);
+  let charCount = text.trim().length;
+  let usedOcr = false;
+  let language = meta.language;
 
   if (charCount === 0) {
-    // Scanned PDF: defer to OCR (Workstream D). Do not insert an empty case.
-    return {
-      case_id: null,
-      chunk_count: 0,
-      citation_count: 0,
-      char_count: 0,
-      needs_ocr: true,
-    };
+    if (!ocrEnabled) {
+      // Scanned PDF and OCR disabled: do not insert an empty case.
+      return {
+        case_id: null,
+        chunk_count: 0,
+        citation_count: 0,
+        char_count: 0,
+        needs_ocr: true,
+        used_ocr: false,
+      };
+    }
+    // Scanned/Urdu PDF: transcribe with OCR (handles English and Urdu).
+    const ocrResult = await ocrPdf(buffer, { apiKeys });
+    text = ocrResult.text;
+    charCount = text.trim().length;
+    usedOcr = true;
+    language = language ?? ocrResult.language;
+    if (charCount === 0) {
+      return {
+        case_id: null,
+        chunk_count: 0,
+        citation_count: 0,
+        char_count: 0,
+        needs_ocr: true,
+        used_ocr: true,
+      };
+    }
   }
+
+  // Tag Urdu judgments so the corpus records the language even for digital PDFs.
+  if (!language) language = containsUrdu(text) ? "ur" : "en";
 
   const result = await importJudgmentFromText({
     db,
-    meta: { ...meta, source_url: meta.source_url ?? url },
+    meta: { ...meta, language, source_url: meta.source_url ?? url },
     fullText: text,
     apiKeys,
   });
-  return { ...result, char_count: charCount, needs_ocr: false };
+  return {
+    ...result,
+    char_count: charCount,
+    needs_ocr: false,
+    used_ocr: usedOcr,
+  };
 }

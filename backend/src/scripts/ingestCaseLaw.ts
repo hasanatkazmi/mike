@@ -68,10 +68,13 @@ async function main() {
         const res = await importJudgmentFromPdf({ db, url, meta });
         if (res.needs_ocr) {
           needsOcr++;
-          console.warn(`[ocr] ${meta.case_name}: scanned PDF, needs OCR.`);
+          console.warn(`[ocr] ${meta.case_name}: OCR produced no text.`);
         } else {
           ok++;
-          console.log(`[ok] ${meta.case_name} (${res.chunk_count} chunks)`);
+          const via = res.used_ocr ? " via OCR" : "";
+          console.log(
+            `[ok] ${meta.case_name} (${res.chunk_count} chunks${via})`,
+          );
         }
       } else {
         failed++;

@@ -59,9 +59,9 @@ export default function FeaturesPage() {
                                 Jurisdiction
                             </p>
                             <p className="text-sm text-gray-500">
-                                Choose which jurisdictions the assistant can
-                                research. When a jurisdiction is enabled, its
-                                case-law research tools are available in chat.
+                                Enable the assistant&apos;s legal research tools.
+                                When enabled, Pakistani statute and case-law
+                                research tools are available in chat.
                             </p>
                         </div>
                         <div className="mt-4 flex items-start justify-between gap-3 px-3 bg-gray-50 py-3 rounded-md">
@@ -69,10 +69,10 @@ export default function FeaturesPage() {
                                 htmlFor="jurisdiction-us"
                                 className="min-w-0 cursor-pointer select-none"
                             >
-                                <p className="text-sm text-gray-900">US</p>
+                                <p className="text-sm text-gray-900">Pakistan</p>
                                 <p className="text-sm text-gray-500">
-                                    Enable US case law research (CourtListener)
-                                    in chat.
+                                    Enable Pakistani statute and case-law
+                                    research in chat.
                                 </p>
                             </label>
                             <button

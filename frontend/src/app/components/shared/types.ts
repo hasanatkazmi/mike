@@ -232,6 +232,75 @@ export type AssistantEvent =
         }[];
       };
     }
+  | {
+      type: "pk_search_case_law";
+      query: string;
+      result_count?: number;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_get_cases";
+      case_ids: string[];
+      case_count?: number;
+      cases?: {
+        case_id: string;
+        case_name: string | null;
+        court: string | null;
+        citation: string | null;
+        date_decided?: string | null;
+      }[];
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_find_in_case";
+      case_id: string | null;
+      query: string;
+      total_matches?: number;
+      case_name?: string | null;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_read_case";
+      case_id: string | null;
+      case_name?: string | null;
+      truncated?: boolean;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_verify_citations";
+      citation_count?: number;
+      match_count?: number;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_search_statutes";
+      query: string;
+      result_count?: number;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_read_statute";
+      statute_id: string | null;
+      title?: string | null;
+      truncated?: boolean;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "pk_case_citation";
+      case_id: string;
+      case_name: string | null;
+      court: string | null;
+      citation: string | null;
+      date_decided: string | null;
+      source_url: string | null;
+    }
   | { type: "content"; text: string; isStreaming?: boolean };
 
 export type CaseCitationQuote = {

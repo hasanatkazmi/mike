@@ -49,6 +49,13 @@ function toolCallLabel(name: string): string {
     if (name === "courtlistener_read_case") return "Reading case...";
     if (name === "courtlistener_verify_citations")
         return "Verifying citations...";
+    if (name === "pk_search_case_law") return "Searching Pakistani case law...";
+    if (name === "pk_get_cases") return "Fetching cases...";
+    if (name === "pk_find_in_case") return "Searching case...";
+    if (name === "pk_read_case") return "Reading case...";
+    if (name === "pk_verify_citations") return "Verifying citations...";
+    if (name === "pk_search_statutes") return "Searching legislation...";
+    if (name === "pk_read_statute") return "Reading statute...";
     return name ? `Running ${name}...` : "Working...";
 }
 
@@ -1704,7 +1711,8 @@ export function AssistantMessage({
     const isRenderableEvent = (event: AssistantEvent) =>
         event.type !== "error" &&
         event.type !== "case_citation" &&
-        event.type !== "case_opinions";
+        event.type !== "case_opinions" &&
+        event.type !== "pk_case_citation";
 
     // Find the last content event so its raw text can be smoothed before
     // citation preprocessing — slicing already-preprocessed text would risk
@@ -2212,6 +2220,186 @@ export function AssistantMessage({
                         caseName: e.case_name,
                         citation: e.citation,
                         url: e.url || null,
+                    });
+                }
+            }
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? `Verifying ${citationLabel}`
+                            : event.error
+                              ? "Citation verification failed"
+                              : `Verified ${citationLabel}`
+                    }
+                    detail={detail}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                    items={items.length > 0 ? items : undefined}
+                />
+            );
+        }
+        if (event.type === "pk_search_case_law") {
+            const count = event.result_count ?? 0;
+            const detail = event.isStreaming
+                ? event.query
+                    ? `for "${event.query}"`
+                    : undefined
+                : event.error
+                  ? event.error
+                  : `${count} ${count === 1 ? "result" : "results"}${event.query ? ` for "${event.query}"` : ""}`;
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Searching Pakistani case law"
+                            : event.error
+                              ? "Case law search failed"
+                              : "Searched Pakistani case law"
+                    }
+                    detail={detail}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                />
+            );
+        }
+        if (event.type === "pk_search_statutes") {
+            const count = event.result_count ?? 0;
+            const detail = event.isStreaming
+                ? event.query
+                    ? `for "${event.query}"`
+                    : undefined
+                : event.error
+                  ? event.error
+                  : `${count} ${count === 1 ? "section" : "sections"}${event.query ? ` for "${event.query}"` : ""}`;
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Searching legislation"
+                            : event.error
+                              ? "Legislation search failed"
+                              : "Searched legislation"
+                    }
+                    detail={detail}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                />
+            );
+        }
+        if (event.type === "pk_get_cases") {
+            const caseCount = event.case_count ?? event.case_ids.length;
+            const displayLabel = `${caseCount} ${caseCount === 1 ? "case" : "cases"}`;
+            const items: CourtListenerBlockItem[] =
+                event.cases?.map((caseItem) => ({
+                    caseName: caseItem.case_name,
+                    citation: caseItem.citation,
+                    url: null,
+                })) ?? [];
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? `Fetching ${displayLabel}`
+                            : event.error
+                              ? "Case fetch failed"
+                              : `Fetched ${displayLabel}`
+                    }
+                    detail={event.error ? event.error : undefined}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                    items={items.length > 0 ? items : undefined}
+                />
+            );
+        }
+        if (event.type === "pk_find_in_case") {
+            const matches = event.total_matches ?? 0;
+            const detail = event.isStreaming
+                ? event.query
+                    ? `for "${event.query}"`
+                    : undefined
+                : event.error
+                  ? event.error
+                  : `(${matches} ${matches === 1 ? "match" : "matches"})`;
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Searching case"
+                            : event.error
+                              ? "Case search failed"
+                              : `Searched ${event.case_name ?? "case"}`
+                    }
+                    detail={detail}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                />
+            );
+        }
+        if (event.type === "pk_read_case") {
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Reading case"
+                            : event.error
+                              ? "Case read failed"
+                              : `Read ${event.case_name ?? "case"}`
+                    }
+                    detail={event.error ? event.error : undefined}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                />
+            );
+        }
+        if (event.type === "pk_read_statute") {
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Reading statute"
+                            : event.error
+                              ? "Statute read failed"
+                              : `Read ${event.title ?? "statute"}`
+                    }
+                    detail={event.error ? event.error : undefined}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                />
+            );
+        }
+        if (event.type === "pk_verify_citations") {
+            const citations = event.citation_count ?? 0;
+            const matches = event.match_count ?? 0;
+            const citationLabel = `${citations} ${citations === 1 ? "citation" : "citations"}`;
+            const detail = event.isStreaming
+                ? undefined
+                : event.error
+                  ? event.error
+                  : `(${matches} ${matches === 1 ? "match" : "matches"})`;
+            const items: CourtListenerBlockItem[] = [];
+            if (events) {
+                for (let j = globalIdx + 1; j < events.length; j++) {
+                    const e = events[j];
+                    if (e.type !== "pk_case_citation") break;
+                    items.push({
+                        caseName: e.case_name,
+                        citation: e.citation,
+                        url: e.source_url || null,
                     });
                 }
             }
